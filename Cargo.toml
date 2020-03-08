@@ -1,0 +1,11 @@
+[package]
+name = "gesture-recognizer"
+version = "0.1.0"
+authors = ["Ilya Sheprut <optitel223@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+miniquad = { version = "*", optional = true }
+
+[features]
+default = []
