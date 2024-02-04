@@ -22,6 +22,10 @@ pub trait GestureEvents {
 	fn touch_three_start(&mut self, _pos: &Point) {}
 	fn touch_three_move(&mut self, _pos: &Point, _offset: &Point) {}
 	fn touch_three_end(&mut self) {}
+
+	fn touch_four_start(&mut self, _pos: &Point) {}
+	fn touch_four_move(&mut self, _pos: &Point, _offset: &Point) {}
+	fn touch_four_end(&mut self) {}
 }
 
 pub struct GestureRecognizer {
@@ -36,6 +40,9 @@ pub struct GestureRecognizer {
 
 	three_touch_regime: bool,
 	three_touch_pos: Point,
+
+	four_touch_regime: bool,
+	four_touch_pos: Point,
 }
 
 impl Default for GestureRecognizer {
@@ -52,6 +59,9 @@ impl Default for GestureRecognizer {
 			
 			three_touch_regime: false,
 			three_touch_pos: Point::default(),
+
+			four_touch_regime: false,
+			four_touch_pos: Point::default(),
 		}
 	}
 }
@@ -94,6 +104,27 @@ impl GestureRecognizer {
 			None
 		}
 	}
+
+	fn get_first_four_touches(&self) -> Option<(&Point, &Point, &Point, &Point)> {
+		let mut iter = self.current_touches.iter();
+		if let Some((_, pos1)) = iter.next() {
+			if let Some((_, pos2)) = iter.next() {
+				if let Some((_, pos3)) = iter.next() {
+					if let Some((_, pos4)) = iter.next() {
+						Some((pos1, pos2, pos3, pos4))
+					} else {
+						None
+					}
+				} else {
+					None
+				}
+			} else {
+				None
+			}
+		} else {
+			None
+		}
+	}
 }
 
 impl GestureRecognizer {
@@ -107,6 +138,7 @@ impl GestureRecognizer {
 		self.process_one_touch(ge);
 		self.process_two_touches(ge);
 		self.process_three_touches(ge);
+		self.process_four_touches(ge);
 	}
 
 	fn process_one_touch<GE: GestureEvents>(&mut self, ge: &mut GE) {
@@ -161,6 +193,24 @@ impl GestureRecognizer {
 		} else if self.three_touch_regime {
 			self.three_touch_regime = false;
 			ge.touch_three_end();
+		}
+	}
+
+	fn process_four_touches<GE: GestureEvents>(&mut self, ge: &mut GE) {
+		if self.current_touches.len() == 4 {
+			let (pos1, pos2, pos3, pos4) = self.get_first_four_touches().unwrap();
+			let center = (pos1.clone() + pos2 + pos3 + pos4) / 3.0;
+			if self.four_touch_regime {
+				ge.touch_four_move(&center, &(center.clone() - &self.four_touch_pos));
+				self.four_touch_pos = center;
+			} else {
+				self.four_touch_regime = true;
+				self.four_touch_pos = center;
+				ge.touch_four_start(&self.four_touch_pos);
+			}
+		} else if self.four_touch_regime {
+			self.four_touch_regime = false;
+			ge.touch_four_end();
 		}
 	}
 }
